@@ -26,6 +26,25 @@ public class MainActivity extends AppCompatActivity {
         initView();
     }
 
+    private void hookClipboardService() {
+        try {
+            Class<?> serviceManager = Class.forName("android.os.ServiceManager");
+            Method getServiceMethod = serviceManager.getMethod("getService", String.class);
+            IBinder rawBinder = (IBinder) getServiceMethod.invoke(null, Context.CLIPBOARD_SERVICE);
+
+            IBinder hookBinder = (IBinder) Proxy.newProxyInstance(serviceManager.getClassLoader(),
+                    new Class[]{IBinder.class},
+                    new ClipboardHookRemoteBinderHandler(rawBinder));
+
+            Field sCacheField = serviceManager.getDeclaredField("sCache");
+            sCacheField.setAccessible(true);
+            Map<String, IBinder> sCache = (Map<String, IBinder>) sCacheField.get(null);
+            sCache.put(Context.CLIPBOARD_SERVICE, hookBinder);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void initView() {
         final EditText editText = (EditText) findViewById(R.id.edittext);
         Button copyBtn = (Button) findViewById(R.id.copy);
@@ -41,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
                 clipboardManager.setPrimaryClip(clip);
             }
         });
+
         showBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -48,24 +68,5 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, clip.getItemAt(0).getText(), Toast.LENGTH_SHORT).show();
             }
         });
-    }
-
-    private void hookClipboardService() {
-        try {
-            Class<?> serviceManager = Class.forName("android.os.ServiceManager");
-            Method getServiceMethod = serviceManager.getMethod("getService", String.class);
-            IBinder rawBinder = (IBinder) getServiceMethod.invoke(null, Context.CLIPBOARD_SERVICE);
-
-            IBinder hookBinder = (IBinder) Proxy.newProxyInstance(serviceManager.getClassLoader(),
-                    new Class[]{IBinder.class},
-                    new IClipboardHookBinderHandler(rawBinder));
-
-            Field sCacheField = serviceManager.getDeclaredField("sCache");
-            sCacheField.setAccessible(true);
-            Map<String, IBinder> sCache = (Map<String, IBinder>) sCacheField.get(null);
-            sCache.put(Context.CLIPBOARD_SERVICE, hookBinder);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 }

@@ -7,16 +7,16 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 
 /**
- * Created by Joinwe on 2017/8/16.
+ * Created by ting说你跳 on 2017/8/16.
  */
 
-public class ClipboardHookBinderHandler implements InvocationHandler {
-    private Object invoke;
+public class ClipboardHookLocalBinderHandler implements InvocationHandler {
+    private Object localProxyBinder;
 
-    public ClipboardHookBinderHandler(IBinder realSubject,Class<?> stubClass ) {
+    public ClipboardHookLocalBinderHandler(IBinder remoteBinder, Class<?> stubClass) {
         try {
             Method asInterfaceMethod = stubClass.getMethod("asInterface", IBinder.class);
-             invoke = asInterfaceMethod.invoke(null, realSubject);
+            localProxyBinder = asInterfaceMethod.invoke(null, remoteBinder);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -25,16 +25,16 @@ public class ClipboardHookBinderHandler implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         String methodName = method.getName();
-        //每次从本应用复制的文本，后面都加上分享的出处
         if ("setPrimaryClip".equals(methodName)) {
             int argsLength = args.length;
             if (argsLength >= 2 && args[0] instanceof ClipData) {
                 ClipData data = (ClipData) args[0];
                 String text = data.getItemAt(0).getText().toString();
-                text += "this is shared from ServiceHook-----by Shawn_Dut";
+                text += "   -- this is shared from ClipboardHookService by ting说你跳";
                 args[0] = ClipData.newPlainText(data.getDescription().getLabel(), text);
             }
         }
-        return method.invoke(invoke, args);
+
+        return method.invoke(localProxyBinder, args);
     }
 }

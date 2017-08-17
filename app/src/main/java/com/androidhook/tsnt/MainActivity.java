@@ -28,14 +28,17 @@ public class MainActivity extends AppCompatActivity {
 
     private void hookClipboardService() {
         try {
-            Class<?> serviceManager = Class.forName("android.os.ServiceManager");
+            //通过反射获取剪切板服务的远程Binder对象
+            Class serviceManager = Class.forName("android.os.ServiceManager");
             Method getServiceMethod = serviceManager.getMethod("getService", String.class);
-            IBinder rawBinder = (IBinder) getServiceMethod.invoke(null, Context.CLIPBOARD_SERVICE);
+            IBinder remoteBinder = (IBinder) getServiceMethod.invoke(null, Context.CLIPBOARD_SERVICE);
 
+            //新建一个我们需要的Binder，动态代理原来的Binder对象
             IBinder hookBinder = (IBinder) Proxy.newProxyInstance(serviceManager.getClassLoader(),
                     new Class[]{IBinder.class},
-                    new ClipboardHookRemoteBinderHandler(rawBinder));
+                    new ClipboardHookRemoteBinderHandler(remoteBinder));
 
+            //通过反射获取ServiceManger存储Binder对象的缓存集合,把我们新建的代理Binder放进缓存
             Field sCacheField = serviceManager.getDeclaredField("sCache");
             sCacheField.setAccessible(true);
             Map<String, IBinder> sCache = (Map<String, IBinder>) sCacheField.get(null);

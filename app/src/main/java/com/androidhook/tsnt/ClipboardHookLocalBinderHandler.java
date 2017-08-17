@@ -2,6 +2,7 @@ package com.androidhook.tsnt;
 
 import android.content.ClipData;
 import android.os.IBinder;
+import android.util.Log;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -24,8 +25,10 @@ public class ClipboardHookLocalBinderHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        Log.d("LocalBinderHandler", method.getName() + "() is invoked");
         String methodName = method.getName();
         if ("setPrimaryClip".equals(methodName)) {
+            //这里对setPrimaryClip()进行了拦截
             int argsLength = args.length;
             if (argsLength >= 2 && args[0] instanceof ClipData) {
                 ClipData data = (ClipData) args[0];
